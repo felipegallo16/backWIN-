@@ -9,12 +9,8 @@ services:
         value: production
       - key: PORT
         value: 3001
-      - key: WORLD_ID_APP_ID
-        sync: false
       - key: WORLD_ID_ACTION
         value: raffle_participation
-      - key: FRONTEND_URL
-        sync: false
       - key: RATE_LIMIT_WINDOW_MS
         value: 60000
       - key: RATE_LIMIT_MAX_REQUESTS
