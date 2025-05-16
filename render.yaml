@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: wintrust-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: app_id
+        sync: false
+      - key: WORLD_ID_ACTION
+        value: raffle_participation
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 60000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 10 
