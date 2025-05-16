@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/cookie-parser": "^1.4.8",
     "@worldcoin/minikit-js": "^1.9.4",
+    "@worldcoin/minikit-react": "^1.9.5",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
