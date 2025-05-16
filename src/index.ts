@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import rafflesRouter from './routes/raffles';
+import authRouter from './routes/auth';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +33,7 @@ const corsOptions = {
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
 
 // Security headers
 app.use((req, res, next) => {
@@ -42,6 +45,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/sorteos', rafflesRouter);
+app.use('/api', authRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -69,4 +73,7 @@ app.listen(port, () => {
   console.log(`   GET    http://localhost:${port}/sorteos/:id`);
   console.log(`   POST   http://localhost:${port}/sorteos/participar`);
   console.log(`   GET    http://localhost:${port}/sorteos/:id/ganador`);
+  console.log(`   POST   http://localhost:${port}/api/auth/login`);
+  console.log(`   POST   http://localhost:${port}/api/auth/register`);
+  console.log(`   POST   http://localhost:${port}/api/auth/logout`);
 }); 
