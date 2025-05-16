@@ -25,9 +25,19 @@ const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
     ? process.env.FRONTEND_URL // Restrict to frontend URL in production
     : '*', // Allow all origins in development
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Origin'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
   credentials: true,
+  maxAge: 86400 // 24 hours
 };
 
 // Middleware
