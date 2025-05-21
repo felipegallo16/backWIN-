@@ -29,36 +29,37 @@ export interface ConfiguracionSorteo {
 }
 
 export interface Raffle {
-  id: string;
-  nombre: string;
-  premio: Premio;
-  descripcion: string;
-  configuracion: ConfiguracionSorteo;
-  numeros_vendidos: number[];
-  tipo: TipoSorteo;
-  premio_acumulado?: number; // Solo para sorteos de tipo TOKEN
-  sorteo_anterior?: string; // ID del sorteo anterior (para sorteos de tipo TOKEN)
-  creado_por: string; // ID del administrador que creó el sorteo
-  fecha_creacion: Date;
-  fecha_actualizacion: Date;
-  ganador?: {
-    numero: number;
-    nullifier_hash: string;
+  id: string;                    // UUID del sorteo
+  nombre: string;                // Nombre del sorteo
+  descripcion: string;           // Descripción detallada del sorteo
+  tipo: TipoSorteo;             // Tipo de sorteo (TOKEN o MATERIAL)
+  premio: Premio;               // Premio del sorteo (Token o Material)
+  configuracion: ConfiguracionSorteo; // Configuración del sorteo
+  numeros_vendidos: number[];    // Array de números vendidos
+  premio_acumulado?: number;     // Premio acumulado (solo para sorteos TOKEN)
+  sorteo_anterior?: string;      // ID del sorteo anterior (para sorteos TOKEN)
+  creado_por: string;           // ID del administrador que creó el sorteo
+  fecha_creacion: Date;         // Fecha de creación del sorteo
+  fecha_actualizacion: Date;    // Fecha de última actualización
+  ganador?: {                   // Información del ganador (opcional)
+    numero: number;             // Número ganador
+    nullifier_hash: string;     // Hash del ganador
   };
 }
 
 export interface Participacion {
-  raffleId: string;
-  nullifier_hash: string;
-  numero_asignado: number;
-  fecha: Date;
-  usuario_id: string; // ID del usuario que participó
-  cantidad_numeros: number; // Cantidad de números comprados en esta participación
+  id?: string;                  // UUID de la participación (opcional, se genera automáticamente)
+  raffleId: string;             // ID del sorteo
+  nullifier_hash: string;       // Hash del participante
+  numero_asignado: number;      // Número asignado al participante
+  fecha: Date;                  // Fecha de la participación
+  usuario_id: string;           // ID del usuario que participó
+  cantidad_numeros: number;     // Cantidad de números comprados
 }
 
 export interface ProofData {
-  nullifier_hash: string;
-  merkle_root: string;
-  proof: string;
-  verification_level: string;
+  nullifier_hash: string;       // Hash del participante
+  merkle_root: string;          // Raíz del árbol Merkle
+  proof: string;                // Prueba de World ID
+  verification_level: string;   // Nivel de verificación
 } 

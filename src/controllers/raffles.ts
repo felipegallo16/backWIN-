@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { verifyWorldIDProof } from '../utils/verification';
 import { selectRaffleWinner } from '../utils/raffle';
@@ -11,7 +12,15 @@ import {
   updateRaffle,
   getAllRaffles,
 } from '../models/database';
-import { ProofData, TipoSorteo, PremioToken, PremioMaterial, ConfiguracionSorteo } from '../models/types';
+import { 
+  ProofData, 
+  TipoSorteo, 
+  PremioToken, 
+  PremioMaterial, 
+  ConfiguracionSorteo, 
+  Participacion, 
+  Raffle 
+} from '../models/types';
 
 export const getInfo = (req: Request, res: Response): void => {
   res.json({
@@ -27,13 +36,18 @@ export const getInfo = (req: Request, res: Response): void => {
   });
 };
 
-export const getRaffles = (req: Request, res: Response): void => {
-  const activeRaffles = getActiveRaffles();
-  res.json(activeRaffles);
+export const getRaffles = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const raffles = await getAllRaffles();
+    res.json(raffles);
+  } catch (error) {
+    console.error('Error al obtener sorteos:', error);
+    res.status(500).json({ error: 'Error al obtener los sorteos' });
+  }
 };
 
-export const getRaffleById = (req: Request, res: Response): void => {
-  const raffle = getRaffle(req.params.id);
+export const getRaffleById = async (req: Request, res: Response): Promise<void> => {
+  const raffle = await getRaffle(req.params.id);
   if (!raffle) {
     res.status(404).json({ error: 'Sorteo no encontrado' });
     return;
@@ -41,7 +55,7 @@ export const getRaffleById = (req: Request, res: Response): void => {
   res.json(raffle);
 };
 
-export const createNewRaffle = (req: Request, res: Response): void => {
+export const createNewRaffle = async (req: Request, res: Response): Promise<void> => {
   const { tipo, premio, configuracion } = req.body;
 
   if (!tipo || !['TOKEN', 'MATERIAL'].includes(tipo)) {
@@ -89,7 +103,7 @@ export const createNewRaffle = (req: Request, res: Response): void => {
   };
 
   const raffle = {
-    id: Date.now().toString(),
+    id: randomUUID(),
     nombre: req.body.nombre || "Sorteo de prueba",
     premio: premioObj,
     descripcion: req.body.descripcion || "Un sorteo de prueba",
@@ -102,15 +116,15 @@ export const createNewRaffle = (req: Request, res: Response): void => {
     fecha_actualizacion: new Date()
   };
 
-  createRaffle(raffle);
+  await createRaffle(raffle);
   res.json(raffle);
 };
 
-export const updateRaffleConfig = (req: Request, res: Response): void => {
+export const updateRaffleConfig = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { configuracion } = req.body;
 
-  const raffle = getRaffle(id);
+  const raffle = await getRaffle(id);
   if (!raffle) {
     res.status(404).json({ error: 'Sorteo no encontrado' });
     return;
@@ -148,7 +162,7 @@ export const updateRaffleConfig = (req: Request, res: Response): void => {
   ];
 
   const camposModificados = Object.keys(configuracion);
-  const camposNoPermitidos = camposModificados.filter(campo => 
+  const camposNoPermitidos = camposModificados.filter((campo: string) => 
     camposNoModificables.includes(campo)
   );
 
@@ -166,7 +180,7 @@ export const updateRaffleConfig = (req: Request, res: Response): void => {
     fecha_actualizacion: new Date()
   };
 
-  updateRaffle(id, { configuracion: updatedConfig });
+  await updateRaffle(id, { configuracion: updatedConfig });
   res.json({ 
     mensaje: 'Configuración actualizada exitosamente',
     advertencia: raffle.configuracion.estado === 'ACTIVO' ? 
@@ -213,9 +227,10 @@ export const participate = async (req: Request, res: Response, next: NextFunctio
 
     // Verificar máximo de números por usuario
     if (raffle.configuracion.maximo_numeros_por_usuario) {
-      const participacionesUsuario = getParticipaciones(raffleId)
-        .filter(p => p.usuario_id === proof.nullifier_hash)
-        .reduce((acc, p) => acc + p.cantidad_numeros, 0);
+      const participaciones = await getParticipaciones(raffleId);
+      const participacionesUsuario = participaciones
+        .filter((p: Participacion) => p.usuario_id === proof.nullifier_hash)
+        .reduce((acc: number, p: Participacion) => acc + p.cantidad_numeros, 0);
 
       if (participacionesUsuario + cantidad_numeros > raffle.configuracion.maximo_numeros_por_usuario) {
         res.status(400).json({ error: 'Excede el máximo de números permitidos por usuario' });
@@ -234,8 +249,8 @@ export const participate = async (req: Request, res: Response, next: NextFunctio
     if (!numero_elegido) {
       const numeros_disponibles = Array.from(
         { length: raffle.configuracion.total_numeros },
-        (_, i) => i + 1
-      ).filter(n => !raffle.numeros_vendidos.includes(n));
+        (_, i: number) => i + 1
+      ).filter((n: number) => !raffle.numeros_vendidos.includes(n));
 
       for (let i = 0; i < cantidad_numeros; i++) {
         const randomIndex = Math.floor(Math.random() * numeros_disponibles.length);
@@ -280,8 +295,8 @@ export const participate = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const getWinner = (req: Request, res: Response): void => {
-  const raffle = getRaffle(req.params.id);
+export const getWinner = async (req: Request, res: Response): Promise<void> => {
+  const raffle = await getRaffle(req.params.id);
   if (!raffle) {
     res.status(404).json({ error: 'Sorteo no encontrado' });
     return;
@@ -289,8 +304,8 @@ export const getWinner = (req: Request, res: Response): void => {
 
   if (!raffle.ganador) {
     if (new Date() > raffle.configuracion.fecha_fin) {
-      selectRaffleWinner(req.params.id);
-      const updatedRaffle = getRaffle(req.params.id);
+      await selectRaffleWinner(req.params.id);
+      const updatedRaffle = await getRaffle(req.params.id);
       if (updatedRaffle?.ganador) {
         res.json({
           numero: updatedRaffle.ganador.numero,
@@ -309,17 +324,17 @@ export const getWinner = (req: Request, res: Response): void => {
   });
 };
 
-export const getRaffleNotifications = (req: Request, res: Response): void => {
+export const getRaffleNotifications = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
-  const raffles = getAllRaffles();
+  const raffles = await getAllRaffles();
   
-  const userNotifications = raffles.map(raffle => {
-    const participaciones = getParticipaciones(raffle.id)
-      .filter(p => p.usuario_id === userId);
+  const userNotifications = await Promise.all(raffles.map(async (raffle: Raffle) => {
+    const participaciones = await getParticipaciones(raffle.id);
+    const userParticipaciones = participaciones.filter((p: Participacion) => p.usuario_id === userId);
     
-    if (participaciones.length === 0) return null;
+    if (userParticipaciones.length === 0) return null;
 
-    const numerosComprados = participaciones.map(p => p.numero_asignado);
+    const numerosComprados = userParticipaciones.map((p: Participacion) => p.numero_asignado);
     const esGanador = raffle.ganador && numerosComprados.includes(raffle.ganador.numero);
     
     return {
@@ -332,35 +347,40 @@ export const getRaffleNotifications = (req: Request, res: Response): void => {
       premio: raffle.premio,
       premioAcumulado: raffle.premio_acumulado
     };
-  }).filter(Boolean);
+  }));
 
-  res.json(userNotifications);
+  res.json(userNotifications.filter(Boolean));
 };
 
-export const getRaffleStatus = (req: Request, res: Response): void => {
-  const { id } = req.params;
-  const raffle = getRaffle(id);
-  
-  if (!raffle) {
-    res.status(404).json({ error: 'Sorteo no encontrado' });
-    return;
+export const getRaffleStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const raffle = await getRaffle(id);
+    
+    if (!raffle) {
+      res.status(404).json({ error: 'Sorteo no encontrado' });
+      return;
+    }
+
+    const participaciones = await getParticipaciones(id);
+    const totalParticipaciones = participaciones.length;
+    const numerosVendidos = raffle.numeros_vendidos.length;
+    const porcentajeVendido = (numerosVendidos / raffle.configuracion.total_numeros) * 100;
+
+    res.json({
+      id: raffle.id,
+      nombre: raffle.nombre,
+      estado: raffle.configuracion.estado,
+      fecha_inicio: raffle.configuracion.fecha_inicio,
+      fecha_fin: raffle.configuracion.fecha_fin,
+      total_numeros: raffle.configuracion.total_numeros,
+      numeros_vendidos: numerosVendidos,
+      porcentaje_vendido: porcentajeVendido,
+      total_participaciones: totalParticipaciones,
+      premio_acumulado: raffle.premio_acumulado || 0
+    });
+  } catch (error) {
+    console.error('Error al obtener estado del sorteo:', error);
+    res.status(500).json({ error: 'Error al obtener el estado del sorteo' });
   }
-
-  const status = {
-    id: raffle.id,
-    nombre: raffle.nombre,
-    estado: raffle.configuracion.estado,
-    fechaFin: raffle.configuracion.fecha_fin,
-    numerosVendidos: raffle.numeros_vendidos.length,
-    totalNumeros: raffle.configuracion.total_numeros,
-    porcentajeVendido: (raffle.numeros_vendidos.length / raffle.configuracion.total_numeros) * 100,
-    premio: raffle.premio,
-    premioAcumulado: raffle.premio_acumulado,
-    ganador: raffle.ganador ? {
-      numero: raffle.ganador.numero,
-      nullifier_hash_masked: maskNullifierHash(raffle.ganador.nullifier_hash)
-    } : null
-  };
-
-  res.json(status);
 };

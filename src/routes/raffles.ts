@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { authAdmin } from '../middleware/authAdmin'; // Middleware de autenticación para administradores
 import { verifyWorldIDProof } from '../utils/verification';
 import { selectRaffleWinner } from '../utils/raffle';
 import { maskNullifierHash } from '../utils/security';
@@ -28,14 +29,19 @@ import {
 
 const router = express.Router();
 
+// Rutas públicas
 router.get('/info', getInfo);
 router.get('/', getRaffles);
 router.get('/:id', getRaffleById);
-router.post('/crear', createNewRaffle);
-router.post('/participar', validateParticipacion, rateLimiter, participate);
 router.get('/:id/ganador', getWinner);
-router.patch('/:id', validateRaffleId, updateRaffleConfig);
+router.get('/:id/status', validateRaffleId, getRaffleStatus);
 router.get('/notificaciones/:userId', getRaffleNotifications);
-router.get('/status/:id', validateRaffleId, getRaffleStatus);
+
+// Rutas protegidas para administradores
+router.post('/crear', authAdmin, createNewRaffle); // Crear un sorteo, protegido
+router.patch('/:id', validateRaffleId, authAdmin, updateRaffleConfig); // Modificar un sorteo, protegido
+
+// Ruta para participar en el sorteo (no requiere ser admin)
+router.post('/participar', validateParticipacion, rateLimiter, participate);
 
 export default router;

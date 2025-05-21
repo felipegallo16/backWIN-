@@ -55,7 +55,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/sorteos', rafflesRouter);
-app.use('/api', authRouter);
+app.use('/api/auth', authRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

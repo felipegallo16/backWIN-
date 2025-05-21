@@ -1,17 +1,15 @@
 import { getRaffle, setRaffleWinner, createRaffle, updateRaffle, getParticipaciones } from '../models/database';
-import { Raffle, TipoSorteo } from '../models/types';
+import { Raffle, TipoSorteo, Participacion } from '../models/types';
 
-export const selectRaffleWinner = (raffleId: string): void => {
-  const raffle = getRaffle(raffleId);
+export const selectRaffleWinner = async (raffleId: string): Promise<void> => {
+  const raffle = await getRaffle(raffleId);
   if (!raffle || raffle.ganador) return;
 
   const numeros_vendidos = raffle.numeros_vendidos;
   
   if (raffle.tipo === 'MATERIAL') {
-    // Para sorteos MATERIAL, siempre debe haber un ganador si hay números vendidos
     if (numeros_vendidos.length === 0) {
-      // Si no hay números vendidos, cancelamos el sorteo
-      updateRaffle(raffleId, {
+      await updateRaffle(raffleId, {
         configuracion: {
           ...raffle.configuracion,
           estado: 'FINALIZADO'
@@ -20,29 +18,35 @@ export const selectRaffleWinner = (raffleId: string): void => {
       return;
     }
 
-    // Seleccionar ganador aleatorio entre los números vendidos
     const numero_ganador = numeros_vendidos[Math.floor(Math.random() * numeros_vendidos.length)];
-    const participacion = getParticipaciones(raffleId).find(p => p.numero_asignado === numero_ganador);
+    const participaciones = await getParticipaciones(raffleId);
+    const participacion = participaciones.find((p: Participacion) => p.numero_asignado === numero_ganador);
     
     if (participacion) {
-      setRaffleWinner(raffleId, numero_ganador, participacion.nullifier_hash);
-      updateRaffle(raffleId, {
+      await setRaffleWinner(raffleId, {
+        numero: numero_ganador,
+        nullifier_hash: participacion.nullifier_hash
+      });
+      await updateRaffle(raffleId, {
         configuracion: {
           ...raffle.configuracion,
           estado: 'FINALIZADO'
         }
       });
     }
-  } else if (raffle.tipo === 'TOKEN') {
-    // Para sorteos TOKEN, seleccionamos un número aleatorio entre todos los posibles
+  } else {
+    // Para sorteos TOKEN
     const numero_ganador = Math.floor(Math.random() * raffle.configuracion.total_numeros) + 1;
     
     if (numeros_vendidos.includes(numero_ganador)) {
-      // Si el número ganador fue vendido, asignamos el premio
-      const participacion = getParticipaciones(raffleId).find(p => p.numero_asignado === numero_ganador);
+      const participaciones = await getParticipaciones(raffleId);
+      const participacion = participaciones.find((p: Participacion) => p.numero_asignado === numero_ganador);
       if (participacion) {
-        setRaffleWinner(raffleId, numero_ganador, participacion.nullifier_hash);
-        updateRaffle(raffleId, {
+        await setRaffleWinner(raffleId, {
+          numero: numero_ganador,
+          nullifier_hash: participacion.nullifier_hash
+        });
+        await updateRaffle(raffleId, {
           configuracion: {
             ...raffle.configuracion,
             estado: 'FINALIZADO'
@@ -50,7 +54,6 @@ export const selectRaffleWinner = (raffleId: string): void => {
         });
       }
     } else {
-      // Si el número ganador no fue vendido, creamos un nuevo sorteo con el premio acumulado
       const premioActual = (raffle.premio.tipo === 'TOKEN' ? raffle.premio.cantidad : 0);
       const premioAcumulado = (raffle.premio_acumulado || 0) + premioActual;
       
@@ -66,15 +69,15 @@ export const selectRaffleWinner = (raffleId: string): void => {
         numeros_vendidos: [],
         configuracion: {
           ...raffle.configuracion,
-          fecha_fin: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas desde ahora
+          fecha_fin: new Date(Date.now() + 24 * 60 * 60 * 1000),
           estado: 'ACTIVO'
         },
         fecha_creacion: new Date(),
         fecha_actualizacion: new Date()
       };
 
-      createRaffle(nuevoSorteo);
-      updateRaffle(raffleId, {
+      await createRaffle(nuevoSorteo);
+      await updateRaffle(raffleId, {
         configuracion: {
           ...raffle.configuracion,
           estado: 'FINALIZADO'
