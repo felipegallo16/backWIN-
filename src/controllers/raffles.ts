@@ -11,6 +11,7 @@ import {
   createRaffle,
   updateRaffle,
   getAllRaffles,
+  supabase
 } from '../models/database';
 import { 
   ProofData, 
@@ -21,7 +22,6 @@ import {
   Participacion, 
   Raffle 
 } from '../models/types';
-import { pool } from '../models/database';
 
 export const getInfo = (req: Request, res: Response): void => {
   res.json({
@@ -392,33 +392,31 @@ export const getRaffleStatus = async (req: Request, res: Response): Promise<void
 };
 
 export const deleteRaffle = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const raffle = await getRaffle(id);
-    
-    if (!raffle) {
-      res.status(404).json({ error: 'Sorteo no encontrado' });
-      return;
-    }
+  const { id } = req.params;
 
-    // Solo permitir eliminar sorteos en estado BORRADOR
-    if (raffle.configuracion.estado !== 'BORRADOR') {
-      res.status(403).json({ 
-        error: 'Solo se pueden eliminar sorteos en estado BORRADOR',
-        estadoActual: raffle.configuracion.estado
-      });
-      return;
-    }
-
-    // Eliminar participaciones asociadas primero
-    await pool.query('DELETE FROM participations WHERE raffle_id = $1', [id]);
-    
-    // Eliminar el sorteo
-    await pool.query('DELETE FROM raffles WHERE id = $1', [id]);
-    
-    res.json({ message: 'Sorteo eliminado correctamente' });
-  } catch (error) {
-    console.error('Error al eliminar sorteo:', error);
-    res.status(500).json({ error: 'Error al eliminar el sorteo' });
+  const raffle = await getRaffle(id);
+  if (!raffle) {
+    res.status(404).json({ error: 'Sorteo no encontrado' });
+    return;
   }
+
+  if (raffle.configuracion.estado !== 'BORRADOR') {
+    res.status(403).json({ 
+      error: 'Solo se pueden eliminar sorteos en estado BORRADOR',
+      estadoActual: raffle.configuracion.estado
+    });
+    return;
+  }
+
+  const { error } = await supabase
+    .from('raffles')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    res.status(500).json({ error: 'Error al eliminar el sorteo' });
+    return;
+  }
+
+  res.json({ mensaje: 'Sorteo eliminado exitosamente' });
 };
