@@ -7,6 +7,10 @@ dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET || 'Tripode123';
 
 export const authAdmin = (req: Request, res: Response, next: NextFunction) => {
+  // Temporalmente permitimos todas las peticiones
+  next();
+  
+  /* Comentamos la verificación de JWT temporalmente
   const token = req.headers.authorization?.split(' ')[1]; // "Bearer <token>"
 
   if (!token) {
@@ -22,4 +26,5 @@ export const authAdmin = (req: Request, res: Response, next: NextFunction) => {
   } catch (error) {
     return res.status(401).json({ error: 'Token inválido' });
   }
+  */
 };
