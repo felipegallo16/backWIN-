@@ -24,7 +24,8 @@ import {
   getWinner,
   updateRaffleConfig,
   getRaffleNotifications,
-  getRaffleStatus
+  getRaffleStatus,
+  deleteRaffle
 } from '../controllers/raffles';
 
 const router = express.Router();
@@ -40,6 +41,7 @@ router.get('/notificaciones/:userId', getRaffleNotifications);
 // Rutas protegidas para administradores
 router.post('/crear', authAdmin, createNewRaffle); // Crear un sorteo, protegido
 router.patch('/:id', validateRaffleId, authAdmin, updateRaffleConfig); // Modificar un sorteo, protegido
+router.delete('/:id', validateRaffleId, authAdmin, deleteRaffle);
 
 // Ruta para participar en el sorteo (no requiere ser admin)
 router.post('/participar', validateParticipacion, rateLimiter, participate);
