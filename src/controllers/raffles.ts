@@ -39,11 +39,16 @@ export const getInfo = (req: Request, res: Response): void => {
 
 export const getRaffles = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('Iniciando getRaffles...');
     const raffles = await getAllRaffles();
+    console.log('Raffles obtenidos:', raffles);
     res.json(raffles);
-  } catch (error) {
-    console.error('Error al obtener sorteos:', error);
-    res.status(500).json({ error: 'Error al obtener los sorteos' });
+  } catch (error: any) {
+    console.error('Error detallado al obtener sorteos:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener los sorteos',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
