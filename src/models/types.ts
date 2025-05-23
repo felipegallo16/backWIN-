@@ -18,7 +18,7 @@ export type Premio = PremioToken | PremioMaterial;
 export interface ConfiguracionSorteo {
   precio_por_numero: number;
   total_numeros: number;
-  fecha_fin: Date;
+  fecha_fin?: Date | null;
   fecha_inicio?: Date;
   minimo_numeros_vendidos?: number; // Mínimo de números que deben venderse para que el sorteo sea válido
   maximo_numeros_por_usuario?: number; // Máximo de números que puede comprar un usuario

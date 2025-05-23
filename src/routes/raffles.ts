@@ -25,7 +25,8 @@ import {
   updateRaffleConfig,
   getRaffleNotifications,
   getRaffleStatus,
-  deleteRaffle
+  deleteRaffle,
+  deleteAllRaffles
 } from '../controllers/raffles';
 
 const router = express.Router();
@@ -45,5 +46,8 @@ router.delete('/:id', validateRaffleId, authAdmin, deleteRaffle);
 
 // Ruta para participar en el sorteo (no requiere ser admin)
 router.post('/participar', validateParticipacion, rateLimiter, participate);
+
+// Ruta para eliminar todos los sorteos
+router.delete('/all', deleteAllRaffles);
 
 export default router;
