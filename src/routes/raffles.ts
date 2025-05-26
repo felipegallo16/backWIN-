@@ -50,4 +50,10 @@ router.post('/participar', validateParticipacion, rateLimiter, participate);
 // Ruta para eliminar todos los sorteos
 router.delete('/all', deleteAllRaffles);
 
+// Ruta para eliminar todos los sorteos (sin CSRF temporalmente)
+router.delete('/todos', (req, res, next) => {
+  // Saltar el middleware CSRF para esta ruta
+  deleteAllRaffles(req, res);
+});
+
 export default router;

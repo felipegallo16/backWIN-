@@ -462,22 +462,29 @@ export const deleteRaffle = async (req: Request, res: Response): Promise<void> =
   res.json({ mensaje: 'Sorteo eliminado exitosamente' });
 };
 
-export const deleteAllRaffles = async (req: Request, res: Response): Promise<void> => {
+export const deleteAllRaffles = async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabase
-      .from('sorteos')
+    const { error } = await supabase
+      .from('raffles')
       .delete()
-      .neq('id', 'dummy'); // Esto eliminará todos los registros
+      .neq('id', 'none'); // Esto eliminará todos los registros
 
     if (error) {
-      console.error('Error al eliminar los sorteos:', error);
-      res.status(500).json({ error: 'Error al eliminar los sorteos', details: error.message });
-      return;
+      console.error('Error al eliminar sorteos:', error);
+      return res.status(500).json({
+        error: 'Error al eliminar los sorteos',
+        message: error.message
+      });
     }
 
-    res.json({ message: 'Todos los sorteos han sido eliminados exitosamente' });
+    return res.json({
+      message: 'Todos los sorteos han sido eliminados exitosamente'
+    });
   } catch (error) {
-    console.error('Error al eliminar los sorteos:', error);
-    res.status(500).json({ error: 'Error al eliminar los sorteos', details: error instanceof Error ? error.message : 'Error desconocido' });
+    console.error('Error inesperado:', error);
+    return res.status(500).json({
+      error: 'Error inesperado al eliminar los sorteos',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
   }
 };

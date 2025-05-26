@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { corsMiddleware } from './middleware/cors';
+import { rateLimiter } from './middleware/rateLimiter';
 import rafflesRouter from './routes/raffles';
 import authRouter from './routes/auth';
 
@@ -17,21 +19,16 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-const app = express();
+export const app = express();
 const port = process.env.PORT || 3001;
 
-// CORS configuration
-const corsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
-
-// Middleware
-app.use(cors(corsOptions));
+// Middlewares básicos
 app.use(express.json());
 app.use(cookieParser());
+
+// Aplicar middlewares de seguridad
+app.use(corsMiddleware);
+app.use(rateLimiter);
 
 // Security headers
 app.use((req, res, next) => {
@@ -63,15 +60,17 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`🚀 Backend server running at http://localhost:${port}`);
-  console.log(`📝 API endpoints:`);
-  console.log(`   GET    http://localhost:${port}/sorteos`);
-  console.log(`   GET    http://localhost:${port}/sorteos/:id`);
-  console.log(`   POST   http://localhost:${port}/sorteos/participar`);
-  console.log(`   GET    http://localhost:${port}/sorteos/:id/ganador`);
-  console.log(`   POST   http://localhost:${port}/api/auth/login`);
-  console.log(`   POST   http://localhost:${port}/api/auth/register`);
-  console.log(`   POST   http://localhost:${port}/api/auth/logout`);
-}); 
+// Solo iniciar el servidor si no estamos en modo test
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    console.log(`🚀 Backend server running at http://localhost:${port}`);
+    console.log(`📝 API endpoints:`);
+    console.log(`   GET    http://localhost:${port}/sorteos`);
+    console.log(`   GET    http://localhost:${port}/sorteos/:id`);
+    console.log(`   POST   http://localhost:${port}/sorteos/participar`);
+    console.log(`   GET    http://localhost:${port}/sorteos/:id/ganador`);
+    console.log(`   POST   http://localhost:${port}/api/auth/login`);
+    console.log(`   POST   http://localhost:${port}/api/auth/register`);
+    console.log(`   POST   http://localhost:${port}/api/auth/logout`);
+  });
+} 

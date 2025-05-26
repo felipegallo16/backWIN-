@@ -1,24 +1,47 @@
 // src/api/complete-siwe.ts
-import { Request, Response } from 'express';
+import { NextRequest, NextResponse } from 'next/server';
 import { MiniAppWalletAuthSuccessPayload, verifySiweMessage } from '@worldcoin/minikit-js';
 
 interface IRequestPayload {
-  payload: MiniAppWalletAuthSuccessPayload;
+  payload: {
+    proof: MiniAppWalletAuthSuccessPayload;
+  };
+  action: string;
+  signal: string;
   nonce: string;
 }
 
-export async function POST(req: Request, res: Response) {
-  const { payload, nonce } = req.body as IRequestPayload;
-
-  const storedNonce = req.cookies.siwe;
-  if (nonce !== storedNonce) {
-    return res.status(400).json({ status: 'error', isValid: false, message: 'Nonce inválido' });
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    const validMessage = await verifySiweMessage(payload, nonce);
-    return res.json({ status: 'success', isValid: validMessage.isValid });
+    const { payload, action, signal, nonce } = await req.json() as IRequestPayload;
+    const { proof } = payload;
+
+    // Validación temprana del nonce
+    const storedNonce = req.cookies.get('siwe')?.value;
+    if (!storedNonce) {
+      return NextResponse.json(
+        { status: 'error', message: 'No se encontró el nonce en las cookies' },
+        { status: 401 }
+      );
+    }
+
+    if (nonce !== storedNonce) {
+      return NextResponse.json(
+        { status: 'error', message: 'Nonce no corresponde' },
+        { status: 401 }
+      );
+    }
+
+    // Si el nonce es válido, proceder con la verificación SIWE
+    const validMessage = await verifySiweMessage(proof, nonce);
+    return NextResponse.json(
+      { status: 'success', isValid: validMessage.isValid },
+      { status: 200 }
+    );
   } catch (error: any) {
-    return res.status(400).json({ status: 'error', isValid: false, message: error.message });
+    return NextResponse.json(
+      { status: 'error', message: error.message },
+      { status: 400 }
+    );
   }
 }
